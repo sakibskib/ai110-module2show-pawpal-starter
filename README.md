@@ -41,3 +41,28 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+## 📸 Demo
+
+<a href="/course_images/ai110/screenshot_paw.jpg" target="_blank"><img src='/course_images/ai110/screenshot_paw.jpg' title='PawPal App' width='' alt='PawPal App' class='center-block' /></a>
+
+## What was built
+
+- **4 core classes**: `Task`, `Pet`, `Owner`, `Scheduler` with full logic
+- **Priority-based scheduler**: High → medium → low, fits within available time
+- **JSON persistence**: Data saves to `data.json` and reloads on startup
+- **Emoji UI**: Color-coded priority 🔴🟡🟢, category icons 🚶🍽️💊✂️🎾
+- **18 pytest tests** covering scheduling, persistence, and emoji helpers
+
+## Running the app
+
+```bash
+source .venv/bin/activate
+streamlit run app.py
+```
+
+## Running tests
+
+```bash
+python -m pytest -v
+```
