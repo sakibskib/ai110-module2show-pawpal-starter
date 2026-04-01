@@ -8,6 +8,11 @@ classDiagram
         +list~Pet~ pets
         +add_pet(pet: Pet) void
         +get_pets() list~Pet~
+        +get_all_tasks() list~Task~
+        +to_dict() dict
+        +from_dict(data: dict)$ Owner
+        +save_to_json(filepath: str) void
+        +load_from_json(filepath: str)$ Owner
     }
 
     class Pet {
@@ -16,6 +21,10 @@ classDiagram
         +list~Task~ tasks
         +add_task(task: Task) void
         +get_tasks() list~Task~
+        +get_incomplete_tasks() list~Task~
+        +to_dict() dict
+        +from_dict(data: dict)$ Pet
+        +get_species_emoji() str
     }
 
     class Task {
@@ -26,6 +35,10 @@ classDiagram
         +str pet_name
         +bool completed
         +mark_complete() void
+        +to_dict() dict
+        +from_dict(data: dict)$ Task
+        +get_priority_emoji() str
+        +get_category_emoji() str
     }
 
     class Scheduler {
@@ -49,3 +62,14 @@ classDiagram
 - **Pet has Tasks**: Each pet can have multiple care tasks (1 to many)
 - **Scheduler manages Owner**: The scheduler works with one owner's data
 - **Scheduler schedules Tasks**: The scheduler organizes all tasks into a daily plan
+
+## New Features (Extensions)
+
+### JSON Persistence
+- `to_dict()` / `from_dict()` methods on Task, Pet, and Owner for serialization
+- `save_to_json()` / `load_from_json()` on Owner for data persistence
+
+### UI Enhancements
+- `get_priority_emoji()` returns 🔴 (high), 🟡 (medium), 🟢 (low)
+- `get_category_emoji()` returns 🚶 (walk), 🍽️ (feeding), 💊 (meds), ✂️ (grooming), 🎾 (enrichment)
+- `get_species_emoji()` returns 🐕 (dog), 🐱 (cat), 🐾 (other)

@@ -4,12 +4,25 @@ PawPal+ System - Backend Logic Layer
 This module contains the core classes for the PawPal+ pet care planning system.
 """
 
+import json
+import os
 from dataclasses import dataclass, field
-from typing import List
+from typing import List, Dict, Any, Optional
 
 
 # Priority weights for scheduling (higher = more important)
 PRIORITY_WEIGHTS = {"high": 3, "medium": 2, "low": 1}
+
+# Emoji mappings for UI display
+PRIORITY_EMOJI = {"high": "🔴", "medium": "🟡", "low": "🟢"}
+CATEGORY_EMOJI = {
+    "walk": "🚶",
+    "feeding": "🍽️",
+    "meds": "💊",
+    "grooming": "✂️",
+    "enrichment": "🎾"
+}
+SPECIES_EMOJI = {"dog": "🐕", "cat": "🐱", "other": "🐾"}
 
 
 @dataclass
@@ -31,6 +44,37 @@ class Task:
         status = "[DONE]" if self.completed else "[    ]"
         return f"{status} {self.title} ({self.pet_name}) - {self.duration_minutes}min [{self.priority}]"
 
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert Task to dictionary for JSON serialization."""
+        return {
+            "title": self.title,
+            "duration_minutes": self.duration_minutes,
+            "priority": self.priority,
+            "category": self.category,
+            "pet_name": self.pet_name,
+            "completed": self.completed
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Task":
+        """Create Task from dictionary."""
+        return cls(
+            title=data["title"],
+            duration_minutes=data["duration_minutes"],
+            priority=data["priority"],
+            category=data["category"],
+            pet_name=data.get("pet_name", ""),
+            completed=data.get("completed", False)
+        )
+
+    def get_priority_emoji(self) -> str:
+        """Return emoji for this task's priority."""
+        return PRIORITY_EMOJI.get(self.priority, "⚪")
+
+    def get_category_emoji(self) -> str:
+        """Return emoji for this task's category."""
+        return CATEGORY_EMOJI.get(self.category, "📋")
+
 
 @dataclass
 class Pet:
@@ -51,6 +95,25 @@ class Pet:
     def get_incomplete_tasks(self) -> List[Task]:
         """Return only incomplete tasks for this pet."""
         return [task for task in self.tasks if not task.completed]
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert Pet to dictionary for JSON serialization."""
+        return {
+            "name": self.name,
+            "species": self.species,
+            "tasks": [task.to_dict() for task in self.tasks]
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Pet":
+        """Create Pet from dictionary."""
+        pet = cls(name=data["name"], species=data["species"])
+        pet.tasks = [Task.from_dict(t) for t in data.get("tasks", [])]
+        return pet
+
+    def get_species_emoji(self) -> str:
+        """Return emoji for this pet's species."""
+        return SPECIES_EMOJI.get(self.species, "🐾")
 
 
 @dataclass
@@ -74,6 +137,38 @@ class Owner:
         for pet in self.pets:
             all_tasks.extend(pet.get_tasks())
         return all_tasks
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert Owner to dictionary for JSON serialization."""
+        return {
+            "name": self.name,
+            "available_time_minutes": self.available_time_minutes,
+            "pets": [pet.to_dict() for pet in self.pets]
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "Owner":
+        """Create Owner from dictionary."""
+        owner = cls(
+            name=data["name"],
+            available_time_minutes=data.get("available_time_minutes", 60)
+        )
+        owner.pets = [Pet.from_dict(p) for p in data.get("pets", [])]
+        return owner
+
+    def save_to_json(self, filepath: str = "data.json") -> None:
+        """Save owner data to a JSON file."""
+        with open(filepath, "w") as f:
+            json.dump(self.to_dict(), f, indent=2)
+
+    @classmethod
+    def load_from_json(cls, filepath: str = "data.json") -> Optional["Owner"]:
+        """Load owner data from a JSON file. Returns None if file doesn't exist."""
+        if not os.path.exists(filepath):
+            return None
+        with open(filepath, "r") as f:
+            data = json.load(f)
+        return cls.from_dict(data)
 
 
 class Scheduler:
@@ -138,8 +233,9 @@ class Scheduler:
         ]
 
         for i, task in enumerate(schedule, 1):
+            emoji = f"{task.get_priority_emoji()} {task.get_category_emoji()}"
             reason = f"Priority: {task.priority}"
-            lines.append(f"{i}. {task.title} for {task.pet_name} ({task.duration_minutes}min) - {reason}")
+            lines.append(f"{i}. {emoji} {task.title} for {task.pet_name} ({task.duration_minutes}min) - {reason}")
 
         # Note skipped tasks
         skipped = [t for t in self.all_tasks if t not in schedule]

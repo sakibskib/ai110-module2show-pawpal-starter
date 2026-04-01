@@ -196,3 +196,110 @@ class TestScheduler:
         ]
 
         assert scheduler.get_total_time(tasks) == 45
+
+
+class TestJSONPersistence:
+    """Tests for JSON serialization and persistence."""
+
+    def test_task_to_dict_and_back(self):
+        """Verify Task can be serialized and deserialized."""
+        task = Task(
+            title="Walk",
+            duration_minutes=30,
+            priority="high",
+            category="walk",
+            pet_name="Mochi",
+            completed=True
+        )
+
+        task_dict = task.to_dict()
+        restored = Task.from_dict(task_dict)
+
+        assert restored.title == task.title
+        assert restored.duration_minutes == task.duration_minutes
+        assert restored.priority == task.priority
+        assert restored.completed == task.completed
+
+    def test_pet_to_dict_and_back(self):
+        """Verify Pet with tasks can be serialized and deserialized."""
+        pet = Pet(name="Mochi", species="dog")
+        pet.add_task(Task(title="Walk", duration_minutes=30, priority="high", category="walk"))
+        pet.add_task(Task(title="Feed", duration_minutes=10, priority="medium", category="feeding"))
+
+        pet_dict = pet.to_dict()
+        restored = Pet.from_dict(pet_dict)
+
+        assert restored.name == pet.name
+        assert restored.species == pet.species
+        assert len(restored.tasks) == 2
+
+    def test_owner_to_dict_and_back(self):
+        """Verify Owner with pets and tasks can be serialized and deserialized."""
+        owner = Owner(name="Jordan", available_time_minutes=90)
+        pet = Pet(name="Mochi", species="dog")
+        pet.add_task(Task(title="Walk", duration_minutes=30, priority="high", category="walk"))
+        owner.add_pet(pet)
+
+        owner_dict = owner.to_dict()
+        restored = Owner.from_dict(owner_dict)
+
+        assert restored.name == owner.name
+        assert restored.available_time_minutes == 90
+        assert len(restored.pets) == 1
+        assert len(restored.pets[0].tasks) == 1
+
+    def test_save_and_load_json(self, tmp_path):
+        """Verify Owner can be saved to and loaded from JSON file."""
+        filepath = tmp_path / "test_data.json"
+
+        owner = Owner(name="Jordan", available_time_minutes=60)
+        pet = Pet(name="Mochi", species="dog")
+        pet.add_task(Task(title="Walk", duration_minutes=30, priority="high", category="walk"))
+        owner.add_pet(pet)
+
+        owner.save_to_json(str(filepath))
+        loaded = Owner.load_from_json(str(filepath))
+
+        assert loaded is not None
+        assert loaded.name == "Jordan"
+        assert len(loaded.pets) == 1
+        assert loaded.pets[0].name == "Mochi"
+
+    def test_load_nonexistent_file_returns_none(self):
+        """Verify loading from nonexistent file returns None."""
+        result = Owner.load_from_json("nonexistent_file_12345.json")
+        assert result is None
+
+
+class TestEmojiHelpers:
+    """Tests for emoji helper methods."""
+
+    def test_task_priority_emoji(self):
+        """Verify correct priority emojis are returned."""
+        high = Task(title="T", duration_minutes=1, priority="high", category="walk")
+        medium = Task(title="T", duration_minutes=1, priority="medium", category="walk")
+        low = Task(title="T", duration_minutes=1, priority="low", category="walk")
+
+        assert high.get_priority_emoji() == "🔴"
+        assert medium.get_priority_emoji() == "🟡"
+        assert low.get_priority_emoji() == "🟢"
+
+    def test_task_category_emoji(self):
+        """Verify correct category emojis are returned."""
+        walk = Task(title="T", duration_minutes=1, priority="high", category="walk")
+        feed = Task(title="T", duration_minutes=1, priority="high", category="feeding")
+        meds = Task(title="T", duration_minutes=1, priority="high", category="meds")
+
+        assert walk.get_category_emoji() == "🚶"
+        assert feed.get_category_emoji() == "🍽️"
+        assert meds.get_category_emoji() == "💊"
+
+    def test_pet_species_emoji(self):
+        """Verify correct species emojis are returned."""
+        dog = Pet(name="Rex", species="dog")
+        cat = Pet(name="Whiskers", species="cat")
+        other = Pet(name="Goldy", species="other")
+
+        assert dog.get_species_emoji() == "🐕"
+        assert cat.get_species_emoji() == "🐱"
+        assert other.get_species_emoji() == "🐾"
